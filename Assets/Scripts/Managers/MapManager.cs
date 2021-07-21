@@ -5,6 +5,7 @@
  *
  */
 
+using System.IO;
 using System.Collections.Generic;
 using UnityEngine;
 using Simulator.Utilities;
@@ -30,6 +31,72 @@ public class MapManager : MonoBehaviour
     private void Start()
     {
         intersections.ForEach(intersection => intersection.StartTrafficLightLoop());
+        Debug.Log("[Achilles] Adding patch to road..");
+        AddPatch();
+    }
+
+    private void AddPatch()
+    {
+        string m_path = Application.dataPath + "/Resources/";
+        string patch = m_path + "patch.png";
+        Debug.Log("[Achilles] Patch: " + patch); 
+        AddSpritePatch(patch, "Patch",
+            new Vector3(0.0f, 0.01f, 5.35f),  // make y a little bit above ground
+            Quaternion.Euler(90f, 180f, 0f),  // rotate y by -90 to place longitudinally
+            new Vector3(1.045f, 1.045f, 1f));  // x is longitudinal direction
+    }
+
+    public void AddSpritePatch(string PatchFilePath, string PatchName,
+        Vector3 position, Quaternion rotation, Vector3 localScale)
+    {
+        Sprite newSprite = CreateNewSprite(PatchFilePath);
+        if (newSprite == null)
+        {
+            Debug.LogError("[Achilles] Unable to create sprite object!"); 
+            return;
+        }
+        GameObject patchGo = new GameObject(PatchName);
+        patchGo.transform.parent = this.transform;
+        patchGo.transform.position = position;
+        patchGo.transform.rotation = rotation;
+        patchGo.transform.localScale = localScale;
+        SpriteRenderer renderer = patchGo.AddComponent<SpriteRenderer>();
+        renderer.sprite = newSprite;
+        // Material spriteLitMaterial = (Material) Resources.Load("SpriteLit", typeof(Material));
+        Material spriteLitMat = Resources.Load<Material>("SpriteLit");
+        renderer.material = spriteLitMat;
+        Debug.Log("Applied Material: " + spriteLitMat.name);
+        Debug.Log("[Achilles] Added patch:" + PatchName);
+    }
+
+    private Sprite CreateNewSprite(string ImageFilePath, float PixelsPerUnit = 100.0f)
+    {
+        Texture2D spriteTexture = LoadTexture(ImageFilePath);
+        if (spriteTexture == null)
+        {
+            Debug.LogError("[Achilles] Texture loading failed! Path: " + ImageFilePath);
+            return null;
+        }
+        Sprite NewSprite = Sprite.Create(spriteTexture,
+            new Rect(0, 0, spriteTexture.width, spriteTexture.height),
+            new Vector2(0, 0),
+            PixelsPerUnit);
+        Debug.Log($"[Achilles] Created texture, dim: {spriteTexture.width} x {spriteTexture.height}");
+        return NewSprite;
+    }
+
+    private Texture2D LoadTexture(string FilePath)
+    {
+        Texture2D Tex2D;
+        byte[] FileData;
+        if (File.Exists(FilePath))
+        {
+            FileData = File.ReadAllBytes(FilePath);
+            Tex2D = new Texture2D(2, 2, TextureFormat.RGBA32, false);
+            if (Tex2D.LoadImage(FileData))
+                return Tex2D;
+        }
+        return null;
     }
 
     private void SetMapData()
